@@ -6,11 +6,18 @@ defmodule FauxSensor.TcpServer do
   end
 
   def init([ip, port]) do
+    ip_tuple = ip_to_tuple(ip)
     {:ok, listen_socket} =
-      :gen_tcp.listen(port, [:binary, {:packet, 0}, {:active, true}, {:ip, '127.0.0.1'}])
+      :gen_tcp.listen(port, [:binary, {:packet, 0}, {:active, true}, {:ip, ip_tuple}])
 
     {:ok, socket} = :gen_tcp.accept(listen_socket)
     {:ok, %{ip: ip, port: port, socket: socket}}
+  end
+
+  defp ip_to_tuple(ip) do
+    list = String.split(ip, ".")
+    parse_to_int = Enum.map(list, fn x -> String.to_integer(x) end)
+    List.to_tuple(parse_to_int)
   end
 
   def handle_info({:tcp, socket, packet}, state) do
