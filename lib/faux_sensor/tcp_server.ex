@@ -1,9 +1,7 @@
-defmodule Miningbee.Onboarding.TcpServer do
+defmodule FauxSensor.TcpServer do
   use GenServer
 
-  def start_link() do
-    ip = Application.get_env(:tcp_server, :ip, {127, 0, 0, 1})
-    port = Application.get_env(:tcp_server, :port, 6666)
+  def start_link(ip \\ {127, 0, 0, 1}, port \\ 6666) do
     GenServer.start_link(__MODULE__, [ip, port], [])
   end
 
@@ -21,7 +19,7 @@ defmodule Miningbee.Onboarding.TcpServer do
     {:noreply, state}
   end
 
-  def handle_info({:tcp_closed, socket}, state) do
+  def handle_info({:tcp_closed, _socket}, state) do
     IO.inspect("Socket has been closed")
     {:noreply, state}
   end

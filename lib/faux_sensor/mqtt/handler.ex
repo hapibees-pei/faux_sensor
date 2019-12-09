@@ -4,9 +4,6 @@ defmodule FauxSensor.Mqtt.Handler do
 
   use Tortoise.Handler
 
-  alias Miningbee.Apiaries
-  alias Miningbee.Redis.Pool
-
   @impl true
   def init(_opts) do
     {:ok, []}

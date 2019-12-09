@@ -1,6 +1,10 @@
 defmodule FauxSensor.Sensor do
   use Agent
 
+  @type sensor :: %{
+          :id => {integer() | nil},
+          :gateway => pid()
+        }
   @type data :: %{
           :date => term(),
           :hieve_id => integer(),
@@ -12,7 +16,8 @@ defmodule FauxSensor.Sensor do
           :humidity => float(),
           :accelerometer => float()
         }
-  def init do
+
+  def init(gateway_id) do
   end
 
   def reading do
