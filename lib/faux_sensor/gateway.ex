@@ -8,7 +8,7 @@ defmodule FauxSensor.Gateway do
   def init(ip, port) do
     QrCode.generate(ip, port)
     {:ok, pid} = TcpServer.start_link(ip, port)
-    Process.monitor(pid)
+    ref = Process.monitor(pid)
 
     receive do
       {:DOWN, ^ref, :process, ^pid, :normal} ->
