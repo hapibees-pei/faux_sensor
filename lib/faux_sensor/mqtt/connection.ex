@@ -3,8 +3,8 @@ defmodule FauxSensor.Mqtt.Connection do
   use Supervisor
   alias FauxSensor.Mqtt.Handler
 
-  def start_link(opts) do
-    Supervisor.start_link(__MODULE__, opts, name: __MODULE__)
+  def start_link(_opts) do
+    Supervisor.start_link(__MODULE__, %{}, name: __MODULE__)
   end
 
   @impl true
@@ -19,8 +19,7 @@ defmodule FauxSensor.Mqtt.Connection do
          user_name: config.user_name,
          password: config.password,
          handler: {Handler, []},
-         keep_alive: 600,
-         subscriptions: [{subscriptions(config.subscriptions), 0}]
+         keep_alive: 600
        ]}
     ]
 
@@ -38,8 +37,7 @@ defmodule FauxSensor.Mqtt.Connection do
       port: 1883,
       user_name: "guest",
       password: "guest",
-      keep_alive: 600,
-      subscriptions: "#"
+      keep_alive: 600
     }
   end
 end

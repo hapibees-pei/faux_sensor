@@ -9,6 +9,8 @@ defmodule FauxSensor.Application do
     children = [
       # Starts a worker by calling: FauxSensor.Worker.start_link(arg)
       # {FauxSensor.Worker, arg}
+      #
+      FauxSensor.Mqtt.Connection
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

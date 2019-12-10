@@ -1,36 +1,39 @@
 defmodule FauxSensor.Sensor do
-  use Agent
+  use GenServer
+  require Logger
   alias FauxSensor.Gateway
 
-  @type sensor :: %{
-          :id => {integer() | nil},
-          :gateway => pid()
-        }
-  @type data :: %{
-          :date => term(),
-          :hieve_id => integer(),
-          :apiary_id => term(),
-          :temperature => float(),
-          :pressure => float(),
-          :light => float(),
-          :noise => float(),
-          :humidity => float(),
-          :accelerometer => float()
-        }
+  def start_link() do
+    GenServer.start_link(__MODULE__, [])
+  end
 
-  def start() do
-    Gateway.add_sensor(self())
+  def init(state) do
+    send(self(), :start)
+    {:ok, state}
+  end
+
+  def handle_info(:start, state) do
+    Logger.info("start")
+
+    if Gateway.add_sensor(self()) < 0 do
+      Process.send_after(self(), :start, 1_000)
+    else
+      start_transmite()
+    end
+
+    {:noreply, state}
+  end
+
+  def handle_info(:wake_up, state) do
+    Logger.info("wake up")
     wake_up()
+
+    {:noreply, state}
   end
 
   def wake_up do
     reading()
-
-    receive do
-    after
-      10_000 ->
-        wake_up()
-    end
+    start_transmite()
   end
 
   def reading do
@@ -39,5 +42,22 @@ defmodule FauxSensor.Sensor do
 
   # Generate fake data
   def data do
+    Jason.encode(%{
+      :date => Timex.now(),
+      :temperature => random(),
+      :pressure => random(),
+      :light => random(),
+      :noise => random(),
+      :humidity => random(),
+      :accelerometer => 0
+    })
+  end
+
+  def start_transmite do
+    Process.send_after(self(), :wake_up, 5_000)
+  end
+
+  def random do
+    :rand.uniform(50)
   end
 end

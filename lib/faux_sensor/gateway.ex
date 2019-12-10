@@ -1,8 +1,9 @@
 defmodule FauxSensor.Gateway do
   use Agent
+  require Logger
 
-  alias FauxSensor.Sensor
   alias FauxSensor.QrCode
+  alias FauxSensor.Mqtt.Publish
   alias FauxSensor.TcpServer
 
   def init(ip, port) do
@@ -18,19 +19,24 @@ defmodule FauxSensor.Gateway do
   end
 
   def add_sensor(pid) do
-    # TODO adicionar o novo pid do sensor ao state, meter nos map dos pids e count++
-    Agent.update(__MODULE__, fn state -> state end)
-    # enviar msg para o gateway/uuid/sensor/id/status
+    {uuid, state} = Agent.get(__MODULE__, fn %{"uuid" => uuid} = state -> {uuid, state} end)
+    Logger.info("Add sensor #{uuid}")
+    id = add_new_pid(uuid, state, pid)
+    Publish.send_sensor_status(uuid, id)
   end
 
-  def set_internal_state(internal) do
+  def set_internal_state(%{"uuid" => uuid} = internal) do
+    Logger.info("Internal #{uuid}")
     Agent.update(__MODULE__, fn state -> Map.merge(state, internal) end)
-    # iniciar mqtt
-    # enviar msg para o gateway/uuid/status
+    Publish.send_gateway_status(uuid)
   end
 
   def send_to_mqtt(sensor_pid, data) do
-    Agent.get(__MODULE__, fn %{pids: pids} = _state -> pids end)
+    {uuid, pids} =
+      Agent.get(__MODULE__, fn %{uuid: uuid, pids: pids} = _state -> {uuid, pids} end)
+
+    id = pids[IO.inspect(sensor_pid)]
+    Publish.send_data(uuid, id, data)
   end
 
   def send_request_create(ip, port) do
@@ -44,5 +50,19 @@ defmodule FauxSensor.Gateway do
       [],
       []
     )
+  end
+
+  def add_new_pid(nil, _state, _pid) do
+    -1
+  end
+
+  def add_new_pid(_uuid, state, pid) do
+    count = state[:count]
+    pids = state[:pids]
+    new_pids = %{pids | IO.inspect(pid) => count}
+    new_count = count + 1
+    new_state = %{state | pids: new_pids, count: new_count}
+    Agent.update(__MODULE__, fn _state -> new_state end)
+    count
   end
 end
