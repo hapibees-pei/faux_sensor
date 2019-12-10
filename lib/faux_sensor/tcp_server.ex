@@ -1,5 +1,8 @@
 defmodule FauxSensor.TcpServer do
   use GenServer
+  require Logger
+
+  alias FauxSensor.Gateway
 
   def start_link(ip, port) do
     GenServer.start_link(__MODULE__, [ip, port], [])
@@ -7,40 +10,41 @@ defmodule FauxSensor.TcpServer do
 
   def init([ip, port]) do
     ip_tuple = ip_to_tuple(ip)
-    {:ok, listen_socket} =
+
+    {:ok, socket} =
       :gen_tcp.listen(port, [:binary, {:packet, 0}, {:active, true}, {:ip, ip_tuple}])
 
-    {:ok, socket} = :gen_tcp.accept(listen_socket)
-    {:ok, %{ip: ip, port: port, socket: socket}}
+    send(self(), :accept)
+    {:ok, %{socket: socket}}
   end
+
+  def handle_info(:accept, %{socket: socket} = state) do
+    {:ok, _} = :gen_tcp.accept(socket)
+
+    Logger.info("Client connected")
+    {:noreply, state}
+  end
+
+  def handle_info({:tcp, socket, packet}, state) do
+    Logger.info("income")
+
+    with {:ok, %{"ip" => ip, "port" => port, "uuid" => uuid}} <- Jason.decode(packet) do
+      :gen_tcp.send(socket, "success")
+
+      Gateway.set_internal_state(%{"ip" => ip, "port" => port, "uuid" => uuid})
+
+      {:stop, :normal, []}
+    else
+      _ -> {:noreply, state}
+    end
+  end
+
+  def handle_info({:tcp_closed, _}, state), do: {:stop, :normal, state}
+  def handle_info({:tcp_error, _}, state), do: {:stop, :normal, state}
 
   defp ip_to_tuple(ip) do
     list = String.split(ip, ".")
     parse_to_int = Enum.map(list, fn x -> String.to_integer(x) end)
     List.to_tuple(parse_to_int)
-  end
-
-  def handle_info({:tcp, socket, packet}, state) do
-    IO.inspect(packet, label: "incoming packet")
-    with {:ok, %{"ip" => ip, "port" => port, "uuid" => uuid} = _map} <- Jason.decode(packet) do 
-      
-      IO.inspect ip
-      IO.inspect port
-      IO.inspect uuid
-
-      :gen_tcp.send(socket, "success")
-      {:stop, :normal, state}
-    end
-    {:noreply, state}
-  end
-
-  def handle_info({:tcp_closed, _socket}, state) do
-    IO.inspect("Socket has been closed")
-    {:noreply, state}
-  end
-
-  def handle_info({:tcp_error, socket, reason}, state) do
-    IO.inspect(socket, label: "connection closed dut to #{reason}")
-    {:noreply, state}
   end
 end

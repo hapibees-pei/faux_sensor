@@ -1,18 +1,7 @@
 defmodule FauxSensor do
-  @moduledoc """
-  Documentation for FauxSensor.
-  """
+  alias FauxSensor.Gateway
 
-  @doc """
-  Hello world.
-
-  ## Examples
-
-      iex> FauxSensor.hello()
-      :world
-
-  """
-  def hello do
-    :world
+  def new(ip, port) do
+    Gateway.init(ip, port)
   end
 end
