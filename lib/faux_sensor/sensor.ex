@@ -37,7 +37,8 @@ defmodule FauxSensor.Sensor do
   end
 
   def reading do
-    Gateway.send_to_mqtt(self(), data())
+    {:ok, read} = data()
+    Gateway.send_to_mqtt(self(), read)
   end
 
   # Generate fake data
@@ -50,7 +51,7 @@ defmodule FauxSensor.Sensor do
       :noise => random(),
       :humidity => random(),
       :accelerometer => 0
-    })
+    }, encode: :unicode_safe)
   end
 
   def start_transmite do

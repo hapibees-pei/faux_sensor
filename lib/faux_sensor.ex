@@ -6,5 +6,6 @@ defmodule FauxSensor do
     Gateway.init(ip, port)
 
     Sensor.start_link()
+    Sensor.start_link()
   end
 end

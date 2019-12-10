@@ -9,7 +9,7 @@ defmodule FauxSensor.Gateway do
   def init(ip, port) do
     TcpServer.start_link(ip, port)
 
-    Agent.start_link(fn -> %{count: 0, pids: %{}, ip: nil, port: nil, uuid: nil} end,
+    Agent.start_link(fn -> %{"count" => 0, "pids" => %{}, "ip" => nil, "port" => nil, "uuid" => nil} end,
       name: __MODULE__
     )
 
@@ -19,10 +19,10 @@ defmodule FauxSensor.Gateway do
   end
 
   def add_sensor(pid) do
-    {uuid, state} = Agent.get(__MODULE__, fn %{"uuid" => uuid} = state -> {uuid, state} end)
-    Logger.info("Add sensor #{uuid}")
-    id = add_new_pid(uuid, state, pid)
-    Publish.send_sensor_status(uuid, id)
+    Logger.info("Add sensor")
+
+    #id = add_new_pid(uuid, state, pid)
+    Agent.get_and_update(__MODULE__, &add_new_pid(&1, pid))
   end
 
   def set_internal_state(%{"uuid" => uuid} = internal) do
@@ -33,16 +33,17 @@ defmodule FauxSensor.Gateway do
 
   def send_to_mqtt(sensor_pid, data) do
     {uuid, pids} =
-      Agent.get(__MODULE__, fn %{uuid: uuid, pids: pids} = _state -> {uuid, pids} end)
+      Agent.get(__MODULE__, fn %{"uuid" => uuid, "pids" => pids} = _state -> {uuid, pids} end)
 
-    id = pids[IO.inspect(sensor_pid)]
+    id = pids[sensor_pid]
+    Logger.info("Sent to mqtt")
     Publish.send_data(uuid, id, data)
   end
 
   def send_request_create(ip, port) do
     Application.ensure_all_started(:inets)
 
-    {:ok, params} = Jason.encode(%{onboarding: %{ip: ip, port: port, uuid: Ecto.UUID.generate()}})
+    {:ok, params} = Jason.encode(%{onboarding: %{"ip" => ip, "port" => port, "uuid" => Ecto.UUID.generate()}})
 
     :httpc.request(
       :post,
@@ -52,17 +53,20 @@ defmodule FauxSensor.Gateway do
     )
   end
 
-  def add_new_pid(nil, _state, _pid) do
-    -1
+  def add_new_pid(%{"uuid" => nil} = state, _pid) do
+    {-1, state}
   end
 
-  def add_new_pid(_uuid, state, pid) do
-    count = state[:count]
-    pids = state[:pids]
-    new_pids = %{pids | IO.inspect(pid) => count}
+  def add_new_pid(state, pid) do
+    count = state["count"]
+    pids = state["pids"]
+    uuid =  state["uuid"]
+    new_pids = Map.put(pids, pid, count) #%{pids | IO.inspect(pid) => count}
     new_count = count + 1
-    new_state = %{state | pids: new_pids, count: new_count}
-    Agent.update(__MODULE__, fn _state -> new_state end)
-    count
+    new_state = %{state | "pids" => new_pids, "count" => new_count}
+    Publish.send_sensor_status(uuid, new_count)
+    {new_count, new_state}
+    #Agent.update(__MODULE__, fn _state -> new_state end)
+    #count
   end
 end
