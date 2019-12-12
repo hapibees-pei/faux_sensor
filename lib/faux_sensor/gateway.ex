@@ -13,7 +13,7 @@ defmodule FauxSensor.Gateway do
       name: __MODULE__
     )
 
-    send_request_create(ip, port)
+    #send_request_create(ip, port)
 
     QrCode.generate(ip, port)
   end
