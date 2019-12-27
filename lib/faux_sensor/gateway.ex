@@ -19,7 +19,7 @@ defmodule FauxSensor.Gateway do
   end
 
   def add_sensor(pid) do
-    Logger.info("Add sensor")
+    #Logger.info("Add sensor")
 
     #id = add_new_pid(uuid, state, pid)
     Agent.get_and_update(__MODULE__, &add_new_pid(&1, pid))
@@ -36,7 +36,7 @@ defmodule FauxSensor.Gateway do
       Agent.get(__MODULE__, fn %{"uuid" => uuid, "pids" => pids} = _state -> {uuid, pids} end)
 
     id = pids[sensor_pid]
-    Logger.info("Sent to mqtt")
+    #Logger.info("Sent to mqtt")
     Publish.send_data(uuid, id, data)
   end
 

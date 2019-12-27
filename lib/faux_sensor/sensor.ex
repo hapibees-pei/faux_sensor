@@ -13,7 +13,7 @@ defmodule FauxSensor.Sensor do
   end
 
   def handle_info(:start, state) do
-    Logger.info("start")
+    #Logger.info("start")
 
     if Gateway.add_sensor(self()) < 0 do
       Process.send_after(self(), :start, 1_000)
@@ -25,7 +25,7 @@ defmodule FauxSensor.Sensor do
   end
 
   def handle_info(:wake_up, state) do
-    Logger.info("wake up")
+    #Logger.info("wake up")
     wake_up()
 
     {:noreply, state}
