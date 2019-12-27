@@ -1,2 +1,5 @@
 #!/usr/bin/env sh
-iex -S mix run -e "FauxSensor.new(\"127.0.0.1\", 6666)"
+ip=$(curl http://ipecho.net/plain)
+echo $ip
+
+iex -S mix run -e "FauxSensor.new(\"$ip\", 6666)"

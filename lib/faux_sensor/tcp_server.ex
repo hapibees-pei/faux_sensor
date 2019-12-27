@@ -9,6 +9,7 @@ defmodule FauxSensor.TcpServer do
   end
 
   def init([ip, port]) do
+    ip = if ip != "127.0.0.1" do "0.0.0.0" end
     ip_tuple = ip_to_tuple(ip)
 
     {:ok, socket} =

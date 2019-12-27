@@ -26,7 +26,8 @@ defmodule FauxSensor.MixProject do
       {:jason, "~> 1.1"},
       {:ecto_sql, "~> 3.0"},
       {:postgrex, ">= 0.0.0"},
-      {:timex, "~> 3.5"}
+      {:timex, "~> 3.5"},
+      {:circuits_uart, "~> 1.3"}
     ]
   end
 end

@@ -43,6 +43,9 @@ defmodule FauxSensor.Sensor do
 
   # Generate fake data
   def data do
+    {:ok, message} = Circuits.UART.read(Circuits, 60000)
+    IO.inspect message
+    
     Jason.encode(%{
       :date => Timex.now(),
       :temperature => random(),

@@ -16,6 +16,10 @@ defmodule FauxSensor.Gateway do
     #send_request_create(ip, port)
 
     QrCode.generate(ip, port)
+
+    Circuits.UART.start_link(name: Circuits)
+    #TODO: change port
+    Circuits.UART.open(Circuits, "/dev/cu.SLAB_USBtoUART", speed: 115200, active: false)
   end
 
   def add_sensor(pid) do
