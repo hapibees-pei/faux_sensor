@@ -5,6 +5,6 @@ defmodule FauxSensor do
   def new(ip, port) do
     Gateway.init(ip, port)
 
-    for _n <- 0..1, do: Sensor.start_link()
+    for _n <- [1], do: Sensor.start_link()
   end
 end

@@ -33,9 +33,10 @@ defmodule FauxSensor.Sensor do
 
   def handle_info(:data, state) do
     {:ok, message} = Circuits.UART.read(Circuits, 60000)
-    IO.inspect(message)
-    buffer = state.buffer
-    split_array = String.split(buffer <> message, "}")
+    buffer = state.buffer <> message
+    IO.inspect(buffer, label: "[RAW]")
+    split_array = String.split(buffer, "}")
+    IO.inspect(split_array, label: "[SPLIT]")
 
     if length(split_array) > 1 do
       droped = Enum.drop(split_array, -1)
@@ -47,21 +48,23 @@ defmodule FauxSensor.Sensor do
       new_state = %{buffer: List.last(split_array)}
       {:noreply, Map.merge(state, new_state)}
     else
-      {:noreply, state}
+      new_state = %{buffer: buffer}
+      {:noreply, Map.merge(state, new_state)}
     end
   end
 
   defp parse(json) do
-    {:ok, data} = Jason.decode(json)
-    split_array = String.split(data["reading"], "&")
-    Jason.encode(%{
+    {:ok, data} = Jason.decode(String.trim(json))
+    split_array = String.split(data["reading"], "&") 
+    IO.inspect(split_array, label: "json")
+    Jason.encode!(%{
       :date => Timex.now(),
-      :temperature => split_array[0],
-      :pressure => split_array[1],
-      :light => split_array[2],
-      :noise => split_array[3],
-      :humidity => split_array[0], #TODO: build correct json on sensor
-      :accelerometer => split_array[1],
+      :temperature => Enum.at(split_array, 0) |> String.to_integer(),
+      :pressure => Enum.at(split_array, 1) |> String.to_float(),
+      :light => Enum.at(split_array, 2) |> String.to_float(),
+      :noise => Enum.at(split_array, 3) |> String.to_float(),
+      :humidity => Enum.at(split_array, 1) |> String.to_float(), #TODO: build correct json on sensor
+      :accelerometer => Enum.at(split_array, 1) |> String.to_float(),
     }, encode: :unicode_safe)
   end
 

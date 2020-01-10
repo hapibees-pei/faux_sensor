@@ -10,7 +10,7 @@ defmodule FauxSensor.Gateway do
     TcpServer.start_link(ip, port)
 
     Agent.start_link(
-      fn -> %{"count" => 0, "pids" => %{}, "ip" => nil, "port" => nil, "uuid" => nil} end,
+      fn -> %{"count" => 1, "pids" => %{}, "ip" => nil, "port" => nil, "uuid" => nil} end,
       name: __MODULE__
     )
 
@@ -71,7 +71,7 @@ defmodule FauxSensor.Gateway do
     new_pids = Map.put(pids, pid, count)
     new_count = count + 1
     new_state = %{state | "pids" => new_pids, "count" => new_count}
-    Publish.send_sensor_status(uuid, new_count)
+    Publish.send_sensor_status(uuid, count)
     {new_count, new_state}
     # Agent.update(__MODULE__, fn _state -> new_state end)
     # count
