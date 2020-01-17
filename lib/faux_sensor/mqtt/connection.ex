@@ -33,7 +33,7 @@ defmodule FauxSensor.Mqtt.Connection do
   def default_config do
     %{
       client_id: "faux",
-      host: "127.0.0.1",
+      host: "10.0.2.38",
       port: 1883,
       user_name: "guest",
       password: "guest",

@@ -20,7 +20,7 @@ defmodule FauxSensor.Gateway do
 
     Circuits.UART.start_link(name: Circuits)
     # TODO: change port
-    Circuits.UART.open(Circuits, "/dev/cu.SLAB_USBtoUART", speed: 115_200, active: false)
+    Circuits.UART.open(Circuits, "ttyUSB0", speed: 115_200, active: false)
   end
 
   def add_sensor(pid) do
