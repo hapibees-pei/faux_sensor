@@ -32,40 +32,58 @@ defmodule FauxSensor.Sensor do
   end
 
   def handle_info(:data, state) do
-    {:ok, message} = Circuits.UART.read(Circuits, 60000)
-    buffer = state.buffer <> message
-    IO.inspect(buffer, label: "[RAW]")
-    split_array = String.split(buffer, "}")
-    IO.inspect(split_array, label: "[SPLIT]")
+    with {:ok, message} <- Circuits.UART.read(Circuits, 60000) do
+      buffer = state.buffer <> message
+      split_array = String.split(buffer, "}")
 
-    if length(split_array) > 1 do
-      droped = Enum.drop(split_array, -1)
+      if length(split_array) > 1 do
+        droped = Enum.drop(split_array, -1)
 
-      Enum.each(
-        droped,
-        fn x -> Gateway.send_to_mqtt(self(), parse(x <> "}")) end
-      )
-      new_state = %{buffer: List.last(split_array)}
-      {:noreply, Map.merge(state, new_state)}
+        Enum.each(droped, &validate_send(&1))
+
+        new_state = %{buffer: List.last(split_array)}
+        {:noreply, Map.merge(state, new_state)}
+      else
+        new_state = %{buffer: buffer}
+        {:noreply, Map.merge(state, new_state)}
+      end
     else
-      new_state = %{buffer: buffer}
-      {:noreply, Map.merge(state, new_state)}
+
+      _err -> 
+
+      Circuits.UART.open(Circuits, "/dev/cu.SLAB_USBtoUART", speed: 115_200, active: false)
+
+      {:noreply, state}
+    end
+  end
+
+  defp validate_send(data) do
+    with {:ok, json} <- parse(data <> "}") do
+      Gateway.send_to_mqtt(self(), json)
     end
   end
 
   defp parse(json) do
-    {:ok, data} = Jason.decode(String.trim(json))
-    split_array = String.split(data["reading"], "&") 
-    IO.inspect(split_array, label: "json")
-    Jason.encode!(%{
-      :date => Timex.now(),
-      :temperature => Enum.at(split_array, 0) |> String.to_integer(),
-      :pressure => Enum.at(split_array, 1) |> String.to_float(),
-      :light => Enum.at(split_array, 2) |> String.to_float(),
-      :noise => Enum.at(split_array, 3) |> String.to_float(),
-      :humidity => Enum.at(split_array, 1) |> String.to_float(), #TODO: build correct json on sensor
-      :accelerometer => Enum.at(split_array, 1) |> String.to_float(),
-    }, encode: :unicode_safe)
+    with {:ok, data} <- Jason.decode(String.trim(json)) do
+      split_array = String.split(data["reading"], "&")
+      IO.inspect(split_array, label: "json")
+
+      Jason.encode(
+        %{
+          :date => Timex.now(),
+          :temperature => Enum.at(split_array, 0) |> String.to_integer(),
+          :pressure => Enum.at(split_array, 1) |> String.to_float(),
+          :light => Enum.at(split_array, 2) |> String.to_float(),
+          :noise => Enum.at(split_array, 3) |> String.to_float(),
+          # TODO: build correct json on sensor
+          :humidity => Enum.at(split_array, 1) |> String.to_float(),
+          :accelerometer => Enum.at(split_array, 1) |> String.to_float()
+        },
+        encode: :unicode_safe
+    )
+    else
+      error -> error
+    end
   end
 
   def wake_up do
@@ -75,8 +93,8 @@ defmodule FauxSensor.Sensor do
 
   def reading do
     send(self(), :data)
-    #{:ok, read} = data()
-    #Gateway.send_to_mqtt(self(), read)
+    # {:ok, read} = data()
+    # Gateway.send_to_mqtt(self(), read)
   end
 
   # Generate fake data
